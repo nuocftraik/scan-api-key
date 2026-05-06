@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/username/scan-api-key/main/schema.json",
+  "maxFileSize": 5242880,
+  "followSymlinks": false,
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    "coverage",
+    "vendor",
+    "__pycache__",
+    ".next",
+    ".nuxt",
+    ".output",
+    ".cache",
+    ".vscode",
+    ".idea",
+    "cypress"
+  ],
+  "ignoreFiles": [
+    "*.lock",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "*.min.js",
+    "*.min.css",
+    "*.map"
+  ],
+  "ignorePatterns": [
+    "example-",
+    "dummy-value-"
+  ],
+  "ignoreValues": [
+    "sk-proj-testkey1234567890abcdef"
+  ],
+  "thresholds": {
+    "high": 80,
+    "medium": 50
+  },
+  "entropy": {
+    "min": 4.2
+  },
+  "format": "cli",
+  "masking": "partial",
+  "showLowConfidence": false
+}

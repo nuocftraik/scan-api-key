@@ -107,9 +107,14 @@
    ├── Group occurrences [{file, line, type}]
    └── Assign confidence (>80=High, 50-80=Medium, <50=Low)
        │
-8. Mask values (prefix + suffix, configurable)
+8. Active Verification (for High/Medium confidence)
+   ├── Send request to Provider API (OpenAI, GitHub, etc.)
+   ├── If status is "dead" or "unknown" → DROP finding entirely
+   └── If status is "active" or "quota_exceeded" → TAG finding with badge
        │
-9. Output (CLI or JSON) + exit code (0/1/2)
+9. Mask values (prefix + suffix, configurable)
+       │
+10. Output (CLI or JSON) + exit code (0/1/2)
 ```
 
 ---
@@ -499,6 +504,8 @@ git log -p --all --pretty=format:"__COMMIT__%H|%an|%ad" --max-count=<depth>
 ### 8.1 Commands
 
 ```bash
+sks hunt "OPENAI_API_KEY"                 # scan GitHub search results
+sks hunt "OPENAI_API_KEY" --limit 50      # scan top 50 files
 sks scan <path>                           # scan directory
 sks scan <path> --deep                    # alias for --history
 sks scan <path> --history                 # scan git history
@@ -625,7 +632,8 @@ sks/
 │   ├── core/
 │   │   ├── scanner.ts              # main scan orchestrator
 │   │   ├── fileWalker.ts           # recursive file traversal
-│   │   └── candidateExtractor.ts   # extract values from lines
+│   │   ├── candidateExtractor.ts   # extract values from lines
+│   │   └── verifier.ts             # active verification against APIs
 │   │
 │   ├── detection/
 │   │   ├── ruleEngine.ts           # apply rules to candidates

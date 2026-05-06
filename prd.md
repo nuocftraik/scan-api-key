@@ -1,45 +1,38 @@
-# PRD - Secret Key Scanner (`sks`)
+# PRD - Secret Key Hacker Bot (`sks`)
 
 ## 1. Overview
 
-**Secret Key Scanner (sks)** là một **confidence-based detection engine** giúp phát hiện API keys, tokens, và credentials bị lộ trong source code.
+**Secret Key Hacker Bot (sks)** là một **confidence-based detection bot** hoạt động hoàn toàn trên môi trường public (GitHub, GitLab). Nó đóng vai trò như một thợ săn tiền thưởng (Bounty Hunter Bot), giúp rà quét các mã nguồn bị rò rỉ trên internet.
 
-> ⚠️ Đây **không phải** một "regex grep tool" — mà là một engine phân tích đa tín hiệu (multi-signal), kết hợp regex matching, entropy analysis, và context detection để đưa ra **confidence score** cho mỗi finding.
+> ⚠️ Đây **không phải** một công cụ scan local repo thông thường. Nó sinh ra để tự động hóa việc crawl tìm kiếm các mã nguồn công khai, sau đó chấm điểm (confidence score) để lọc ra Key thật.
 
 ### Product Identity
 
 | Attribute     | Value                          |
 | ------------- | ------------------------------ |
-| Tên sản phẩm  | Secret Key Scanner             |
-| CLI command   | `sks`                         |
+| Tên sản phẩm  | Secret Key Hacker Bot          |
+| CLI command   | `sks hunt`                     |
 | Ngôn ngữ      | TypeScript (Node.js)          |
-| Distribution  | npm (`npx sks scan .`)        |
-| License       | TBD                           |
+| Target        | Public Repositories (GitHub)   |
 
 ### Mục tiêu cốt lõi
 
-- Phát hiện API key với **độ chính xác cao** (confidence-based, không chỉ regex)
-- Giảm **false positive** thông qua negative signals & scoring system
-- Tự động hóa việc scan trong **CI/CD pipeline**
-- Hỗ trợ nhiều nền tảng AI & cloud (OpenAI, Anthropic, Google, AWS, GitHub,...)
+- **GitHub/GitLab Hunt**: Tự động crawl kết quả tìm kiếm và scan trực tiếp trên memory.
+- **Provider Suggestions**: Gợi ý các từ khóa (keywords, patterns) của các nền tảng AI/Cloud phổ biến nhất để user không cần nhớ cú pháp search.
+- Phát hiện API key với **độ chính xác cao** (confidence-based, lọc rác).
 
 ---
 
 ## 2. Problem Statement
 
-Developers thường:
-
-- **Hardcode** API key trực tiếp vào source code
-- **Commit nhầm** file `.env` lên repository
-- **Không nhận ra** key đã bị leak trong git history (đã xóa ở HEAD nhưng vẫn tồn tại trong commit cũ)
-
-Hacker sử dụng bot scan 24/7 trên GitHub/GitLab → **exploit key trong vài phút** sau khi commit.
+Hacker sử dụng bot scan 24/7 trên GitHub/GitLab → **exploit key trong vài phút** sau khi một lập trình viên vô tình public code.
+Bounty Hunters/Security Researchers cần một tool để tự động hóa quá trình săn lỗi này thay vì lên GitHub search tay và tải từng file về kiểm tra.
 
 ### Tại sao tool hiện có chưa đủ?
 
-- **Gitleaks/TruffleHog**: Mạnh nhưng config phức tạp, không thân thiện với dev frontend/startup
-- **Regex grep đơn thuần**: Quá nhiều false positive, không có scoring
-- **GitHub Secret Scanning**: Chỉ hoạt động trên GitHub, không scan local
+- **Gitleaks/TruffleHog**: Mạnh nhưng chỉ thiết kế để scan local repo. Không có khả năng crawl từ GitHub Search.
+- **GitHub Secret Scanning**: Chỉ cảnh báo cho chủ repo, không dành cho security researchers bên thứ 3.
+- **Regex grep đơn thuần**: Quá nhiều false positive, không thể phân biệt giữa key thật và fake placeholder (`YOUR_KEY_HERE`).
 
 ---
 
@@ -47,36 +40,27 @@ Hacker sử dụng bot scan 24/7 trên GitHub/GitLab → **exploit key trong và
 
 ### Primary Goals
 
-- Detect API keys với **confidence score** (không chỉ binary match/no-match)
-- **False positive rate < 10%** nhờ negative signals (placeholder detection, test file detection,...)
-- Scan nhanh: **< 5s cho 10k files**
-- **Zero-config experience**: `npx sks scan .` chạy được ngay, không cần setup
-
-### Secondary Goals
-
-- Tích hợp CI/CD (exit code strategy)
-- Export report (JSON)
-- Hỗ trợ custom rules & config inheritance (`extends`)
-- Scan git history để phát hiện key đã bị xóa
+- **Hunt Command**: Hỗ trợ crawl và scan trực tiếp từ kết quả search của GitHub API (`sks hunt`).
+- **Interactive Suggestions**: Cung cấp command `sks suggest` hoặc prompt tương tác để chọn Provider (OpenAI, AWS...) và tự sinh query search.
+- Detect API keys với **confidence score**.
+- **False positive rate < 10%** nhờ negative signals.
 
 ---
 
 ## 4. Non-Goals
 
-- ❌ Không phải vulnerability scanner full-stack (không scan SQL injection, XSS,...)
-- ❌ Không xử lý runtime secrets (chỉ static analysis)
-- ❌ Không verify key còn hoạt động hay đã revoke (không gọi API bên ngoài)
-- ❌ Không hỗ trợ encrypted repos
+- ❌ Không scan local repo (không cần thiết vì đã có code trên máy thì không gọi là "săn" leak).
+- ❌ Không phải vulnerability scanner full-stack.
+- ❌ Không verify key còn hoạt động hay đã revoke bằng cách call thử API thực tế (tránh bị block).
 
 ---
 
 ## 5. Target Users
 
-| Persona                | Pain Point                                | Giá trị `sks` mang lại             |
-| ---------------------- | ----------------------------------------- | ----------------------------------- |
-| **Frontend/Fullstack** | Hay hardcode key, dùng `.env` không đúng  | Scan nhanh, npm ecosystem quen thuộc |
-| **Startup teams**      | Thiếu security layer, không có SOC team   | Zero-config, chạy ngay             |
-| **DevOps/SecEng**      | Cần enforce policy trong CI               | Exit code, JSON report, custom rules |
+| Persona                | Giá trị `sks` mang lại             |
+| ---------------------- | ----------------------------------- |
+| **Bounty Hunters**     | Bot tự động tìm kiếm, tải code và chấm điểm confidence, lọc rác. Cung cấp sẵn kho keyword béo bở. |
+| **Security Researchers** | Dễ dàng tracking các xu hướng rò rỉ secret của một nền tảng cụ thể. |
 
 ---
 
@@ -86,36 +70,20 @@ Hacker sử dụng bot scan 24/7 trên GitHub/GitLab → **exploit key trong và
 
 | Feature                        | Mô tả                                                    |
 | ------------------------------ | --------------------------------------------------------- |
-| Scan local folder              | Recursive scan, auto-detect text files, skip binary       |
+| **GitHub Search Hunt**         | Tìm kiếm qua GitHub API, tải file và scan (`sks hunt`)    |
+| **Interactive Suggestions**    | Gợi ý các query search ngon ăn cho các provider phổ biến |
 | Multi-signal detection         | `valuePattern` + `keyPattern` + `contextPattern`          |
-| Entropy analysis               | Shannon entropy trên extracted values (threshold ≥ 4.2)   |
+| Entropy analysis               | Shannon entropy trên extracted values                     |
 | Confidence scoring             | Score aggregation → High/Medium/Low confidence            |
-| Negative signals               | Placeholder detection, test file, comment, low entropy    |
-| Deduplication                  | Merge findings theo VALUE, group occurrences              |
-| Value masking                  | Default: show prefix + suffix, mask middle                |
-| Built-in rules                 | OpenAI, Anthropic, Google, AWS, GitHub, Generic           |
-| CLI output                     | Human-friendly format với color coding                    |
-| Exit code                      | 0 = clean, 1 = findings, 2 = error                       |
+| Negative signals               | Lọc Placeholder, test file, comment, low entropy          |
 
 ### V1 (Milestone 2)
 
 | Feature                        | Mô tả                                                    |
 | ------------------------------ | --------------------------------------------------------- |
-| Git history scanning           | Shell out `git log -p`, default depth 50 commits          |
-| Custom rule config             | `sks.config.json` với extends support                     |
-| Ignore system                  | Ignore paths, files, patterns, values (allowlist)         |
-| JSON report                    | Structured output với meta, summary, findings             |
-| Config lookup                  | CWD → traverse parents → `~/.sksrc`                      |
-| Rule enable/disable            | Per-provider toggle                                       |
-
-### V2 (Milestone 3)
-
-| Feature                        | Mô tả                                                    |
-| ------------------------------ | --------------------------------------------------------- |
-| CI/CD integration              | GitHub Actions, GitLab CI templates                       |
-| Pre-commit hook guide + helper | Husky integration, `npx sks scan . \|\| exit 1`          |
-| Dashboard UI                   | Web-based report viewer                                   |
-| Alert system                   | Notification khi phát hiện leak                           |
+| GitLab Search Integration      | Thêm module crawl mã nguồn từ GitLab API                  |
+| Scheduled Bot                  | Bot chạy ngầm, cronjob 5 phút/lần báo kết quả qua Discord |
+| Automated Notification         | Push webhook khi có High Confidence leak                  |
 
 ---
 
@@ -123,37 +91,14 @@ Hacker sử dụng bot scan 24/7 trên GitHub/GitLab → **exploit key trong và
 
 | Metric                 | Target     | Cách đo                              |
 | ---------------------- | ---------- | ------------------------------------- |
-| Detection accuracy     | > 90%      | Synthetic dataset + known leak corpus |
-| False positive rate    | < 10%      | Test fixtures (clean files)           |
-| Scan speed             | < 5s/10k   | Benchmark trên real repos             |
-| Install-to-first-scan  | < 30s      | `npx sks scan .` cold start          |
+| Detection accuracy     | > 90%      | Dựa trên tập kết quả Github           |
+| False positive rate    | < 10%      | Lọc được các dummy/placeholder repo   |
 
 ---
 
-## 8. Risks & Mitigations
+## 8. Triết lý thiết kế
 
-| Risk                           | Impact | Mitigation                                 |
-| ------------------------------ | ------ | ------------------------------------------ |
-| False positives gây khó chịu   | High   | Negative signals, tunable thresholds       |
-| Miss key → mất trust           | High   | Multi-signal detection, entropy fallback   |
-| Performance khi scan repo lớn  | Medium | Streaming, file size limit, line limit     |
-| npm package name bị chiếm      | Low    | Fallback: `sks-cli`                        |
-
----
-
-## 9. Triết lý thiết kế
-
-1. **Confidence over binary**: Mọi finding đều có score, không chỉ "found/not found"
-2. **Signal composition**: Nhiều tín hiệu yếu kết hợp = 1 tín hiệu mạnh
-3. **Noise reduction là feature**: Negative signals quan trọng không kém positive
-4. **npx-first**: User phải scan được trong 1 lệnh, không cần install
-5. **Convention over configuration**: Hoạt động tốt với zero config, mở rộng khi cần
-
----
-
-## 10. Future Vision
-
-- **SaaS platform**: Scan repo online, hosted dashboard
-- **Pay-per-scan model**: Monetization cho enterprise
-- **Security scoring system**: Chấm điểm bảo mật tổng thể cho repo
-- **Rule marketplace**: Community-contributed rules
+1. **Hunting First**: Không scan local. Sinh ra là để quét diện rộng trên public networks.
+2. **Confidence over binary**: Mọi finding đều có score, không chỉ "found/not found".
+3. **Noise reduction là feature**: Negative signals quan trọng không kém positive.
+4. **Knowledge embedded**: Tool phải biết sẵn các pattern của AWS, OpenAI để gợi ý cho user.
